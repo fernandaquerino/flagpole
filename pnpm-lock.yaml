@@ -33,6 +33,19 @@ importers:
         specifier: ^3.2.4
         version: 3.2.7(@types/node@24.19.2)(tsx@4.23.15)
 
+  packages/evaluator:
+    dependencies:
+      '@flagpole/shared':
+        specifier: workspace:*
+        version: link:../shared
+      semver:
+        specifier: ^7.7.4
+        version: 7.8.6
+    devDependencies:
+      '@types/semver':
+        specifier: ^7.7.1
+        version: 7.8.0
+
   packages/shared:
     dependencies:
       zod:
@@ -415,6 +428,9 @@ packages:
 
   '@types/node@24.19.2':
     resolution: {integrity: sha512-93d49wCWJkCyN87MxLpNN6KXPCwFw7bVUg79mGUV1OS40JGWwVCr8n61DXCSqz7CV6/VfPkb7xec7uP2M+QHWQ==}
+
+  '@types/semver@7.8.0':
+    resolution: {integrity: sha512-1mAINjtQCXXeLkJ9ehXkwOcBpqtLxiVtKhpUf83DdRNdQKV0iXZpaHYqRr7nj+wvxuJzoAmAwXI+sCNMv1CzLQ==}
 
   '@typescript-eslint/eslint-plugin@8.72.2':
     resolution: {integrity: sha512-222PKFXKihmFpi/pS5njoBgdAqsPhj2/GBmFbrNw8Tq8gEG9Sv+kSlKFy4u2q+mJv9ZzJgM2Gkv/bUzRZwZw5g==}
@@ -1275,6 +1291,8 @@ snapshots:
   '@types/node@24.19.2':
     dependencies:
       undici-types: 7.24.6
+
+  '@types/semver@7.8.0': {}
 
   '@typescript-eslint/eslint-plugin@8.72.2(@typescript-eslint/parser@8.72.2(eslint@9.39.5)(typescript@5.9.3))(eslint@9.39.5)(typescript@5.9.3)':
     dependencies:
