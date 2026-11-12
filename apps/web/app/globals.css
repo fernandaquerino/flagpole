@@ -1394,3 +1394,23 @@ dialog label {
     scroll-behavior: auto !important;
   }
 }
+
+@media (max-width: 650px) {
+  .sidebar-bottom {
+    display: flex;
+    grid-column: 1 / -1;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .sidebar-bottom .hosting,
+  .logout small {
+    display: none;
+  }
+  .logout {
+    border: 0;
+    padding: 0;
+  }
+  .sidebar-bottom > a {
+    font-size: 11px;
+  }
+}

@@ -60,7 +60,9 @@ beforeAll(async () => {
     .set('X-Flagpole-CSRF', '1')
     .send({ password: 'test-only-password' })
     .expect(201);
-  cookie = login.headers['set-cookie'][0];
+  const cookies = login.headers['set-cookie'];
+  if (!cookies?.[0]) throw new Error('Missing session cookie');
+  cookie = cookies[0];
 });
 afterAll(async () => {
   await app?.close();
@@ -286,7 +288,7 @@ describe('SDK endpoints', () => {
     await api()
       .get('/sdk/v1/flags')
       .set('Authorization', `Bearer ${serverKey}`)
-      .set('If-None-Match', first.headers.etag)
+      .set('If-None-Match', first.headers.etag!)
       .expect(304);
     await admin(
       'put',
@@ -297,7 +299,7 @@ describe('SDK endpoints', () => {
     const second = await api()
       .get('/sdk/v1/flags')
       .set('Authorization', `Bearer ${serverKey}`)
-      .set('If-None-Match', first.headers.etag)
+      .set('If-None-Match', first.headers.etag!)
       .expect(200);
     expect(second.headers.etag).not.toBe(first.headers.etag);
   });

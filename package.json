@@ -9,7 +9,7 @@
   "scripts": {
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "pnpm -r typecheck && tsc -p tsconfig.tools.json --noEmit",
     "test": "vitest run --passWithNoTests",
     "build": "pnpm -r build",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
@@ -19,7 +19,8 @@
     "dev:api": "node --env-file=.env scripts/run.mjs pnpm --filter @flagpole/api dev",
     "test:integration": "node --env-file=.env scripts/run.mjs vitest run apps/api/test",
     "dev:example": "pnpm --filter @flagpole/example dev",
-    "dev:web": "node --env-file=.env scripts/run.mjs pnpm --filter @flagpole/web dev"
+    "dev:web": "node --env-file=.env scripts/run.mjs pnpm --filter @flagpole/web dev",
+    "test:e2e": "tsx apps/api/e2e/run.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",
@@ -37,6 +38,9 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0"
-  }
+    "@types/react-dom": "^19.0.0",
+    "@playwright/test": "^1.58.0",
+    "@types/jsdom": "^27.0.0"
+  },
+  "type": "module"
 }

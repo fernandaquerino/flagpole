@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Flask, Archive, Check, Plus } from '@phosphor-icons/react';
@@ -32,10 +32,13 @@ export function FlagEditor() {
   const [values, setValues] = useState<FlagValue[]>([]);
   const [tab, setTab] = useState('targeting');
   const [saved, setSaved] = useState(false);
+  const loadId = useRef(0);
   async function load() {
+    const requestId = ++loadId.current;
     setError('');
     try {
       const f = await api<StoredFlag>(base);
+      if (requestId !== loadId.current) return;
       setFlag(f);
       setDescription(f.description);
       setValues(f.variations);
@@ -44,14 +47,18 @@ export function FlagEditor() {
         throw new Error('No configuration exists for this environment.');
       setDraft(config);
     } catch (e) {
-      setError(message(e));
+      if (requestId === loadId.current) setError(message(e));
     }
   }
   useEffect(() => {
     setFlag(null);
     setDraft(null);
     setReview(null);
+    setSaved(false);
     void load();
+    return () => {
+      loadId.current++;
+    };
   }, [base, environment.id]);
   const original = flag?.configs.find(
     (c) => c.environmentId === environment.id,
@@ -161,7 +168,7 @@ export function FlagEditor() {
         </button>
       </div>
       {error && <ErrorNotice error={error} retry={() => void load()} />}{' '}
-      {saved && (
+      {saved && !dirty && (
         <div className="notice success" role="status">
           <Check size={18} />
           Changes saved.

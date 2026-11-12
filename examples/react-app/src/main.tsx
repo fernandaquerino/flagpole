@@ -60,7 +60,11 @@ function App() {
         </label>
         <label>
           Plan
-          <select value={plan} onChange={(e) => setPlan(e.target.value)}>
+          <select
+            aria-label="Plan"
+            value={plan}
+            onChange={(e) => setPlan(e.target.value)}
+          >
             <option value="free">Free</option>
             <option value="pro">Pro</option>
           </select>

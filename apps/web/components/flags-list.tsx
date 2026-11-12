@@ -249,13 +249,17 @@ function CreateFlag({
           Flag key
           <input
             required
+            aria-label="Flag key"
+            aria-describedby="flag-key-help"
             pattern="[a-z0-9][a-z0-9_-]*"
             maxLength={100}
             placeholder="new-checkout"
             value={key}
             onChange={(e) => setKey(e.target.value)}
           />
-          <small>Permanent identifier used in your code.</small>
+          <small id="flag-key-help">
+            Permanent identifier used in your code.
+          </small>
         </label>
         <label>
           Description

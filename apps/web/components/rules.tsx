@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus, Trash, ArrowUp, ArrowDown } from '@phosphor-icons/react';
 import {
   operatorSchema,
@@ -51,6 +51,7 @@ export function ServeEditor({
         <label>
           {label}
           <select
+            aria-label={label}
             value={rollout ? 'rollout' : 'variation'}
             onChange={(e) =>
               onChange(
@@ -142,6 +143,11 @@ function ClauseEditor({
 }) {
   const [text, setText] = useState(JSON.stringify(clause.values));
   const [invalid, setInvalid] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const valuesJson = JSON.stringify(clause.values);
+  useEffect(() => {
+    if (!editing) setText(valuesJson);
+  }, [valuesJson, editing]);
   return (
     <div className="clause">
       <label>
@@ -174,6 +180,8 @@ function ClauseEditor({
         Values (JSON array)
         <input
           aria-invalid={invalid}
+          onFocus={() => setEditing(true)}
+          onBlur={() => setEditing(false)}
           value={text}
           onChange={(e) => {
             setText(e.target.value);
