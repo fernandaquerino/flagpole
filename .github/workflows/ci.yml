@@ -1,0 +1,37 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: flagpole
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: flagpole
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U flagpole" --health-interval 2s
+          --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://flagpole:ci-only-password@localhost:5432/flagpole
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm -r build
+      - run: pnpm check
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-results
+          path: playwright-report/
+          retention-days: 7

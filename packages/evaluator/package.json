@@ -1,0 +1,23 @@
+{
+  "name": "@flagpole/evaluator",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@flagpole/shared": "workspace:*",
+    "semver": "^7.7.4"
+  },
+  "devDependencies": {
+    "@types/semver": "^7.7.1"
+  }
+}
