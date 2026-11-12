@@ -1,0 +1,23 @@
+{
+  "name": "@flagpole/api",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "generate": "prisma generate",
+    "migrate": "prisma migrate deploy",
+    "seed": "tsx prisma/seed.ts",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.0",
+    "@flagpole/shared": "workspace:*",
+    "@flagpole/evaluator": "workspace:*"
+  },
+  "devDependencies": {
+    "prisma": "^6.19.0"
+  }
+}

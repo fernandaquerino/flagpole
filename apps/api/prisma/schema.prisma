@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+model Project {
+  id           String        @id @default(cuid())
+  name         String
+  slug         String        @unique
+  environments Environment[]
+  flags        Flag[]
+}
+model Environment {
+  id               String       @id @default(cuid())
+  projectId        String
+  key              String
+  clientSdkKeyHash String       @unique
+  serverSdkKeyHash String       @unique
+  allowedOrigins   String[]
+  project          Project      @relation(fields: [projectId], references: [id])
+  configs          FlagConfig[]
+  audits           AuditEntry[]
+  @@unique([projectId, key])
+}
+model Flag {
+  id          String       @id @default(cuid())
+  projectId   String
+  key         String
+  type        String
+  variations  Json
+  description String       @default("")
+  archivedAt  DateTime?
+  project     Project      @relation(fields: [projectId], references: [id])
+  configs     FlagConfig[]
+  audits      AuditEntry[]
+  @@unique([projectId, key])
+}
+model FlagConfig {
+  flagId        String
+  environmentId String
+  enabled       Boolean @default(false)
+  offVariation  Int
+  fallthrough   Json
+  rules         Json
+  salt          String
+  version       Int @default(1)
+  flag          Flag @relation(fields: [flagId], references: [id])
+  environment   Environment @relation(fields: [environmentId], references: [id])
+  @@id([flagId, environmentId])
+}
+model AuditEntry {
+  id            String @id @default(cuid())
+  actor         String
+  action        String
+  flagId        String
+  environmentId String?
+  before        Json
+  after         Json
+  createdAt     DateTime @default(now())
+  flag          Flag @relation(fields: [flagId], references: [id])
+  environment   Environment? @relation(fields: [environmentId], references: [id])
+  @@index([flagId, createdAt])
+  @@index([environmentId, createdAt])
+}
