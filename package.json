@@ -18,7 +18,8 @@
     "db:seed": "node --env-file=.env scripts/run.mjs pnpm --filter @flagpole/api seed",
     "dev:api": "node --env-file=.env scripts/run.mjs pnpm --filter @flagpole/api dev",
     "test:integration": "node --env-file=.env scripts/run.mjs vitest run apps/api/test",
-    "dev:example": "pnpm --filter @flagpole/example dev"
+    "dev:example": "pnpm --filter @flagpole/example dev",
+    "dev:web": "node --env-file=.env scripts/run.mjs pnpm --filter @flagpole/web dev"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",
