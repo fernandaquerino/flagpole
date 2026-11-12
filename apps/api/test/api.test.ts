@@ -5,6 +5,9 @@ import { randomBytes } from 'node:crypto';
 import request from 'supertest';
 import type { INestApplication } from '@nestjs/common';
 import { hashPassword } from '../src/auth.js';
+import { hashKey, newKey } from '../src/keys.js';
+const clientKey = newKey('client');
+const serverKey = newKey('server');
 const schema = `test_${randomBytes(8).toString('hex')}`;
 const baseUrl = process.env.DATABASE_URL;
 if (!baseUrl)
@@ -45,8 +48,8 @@ beforeAll(async () => {
     data: {
       key: 'development',
       projectId: project.id,
-      clientSdkKeyHash: 'client-test-hash',
-      serverSdkKeyHash: 'server-test-hash',
+      clientSdkKeyHash: hashKey(clientKey),
+      serverSdkKeyHash: hashKey(serverKey),
       allowedOrigins: ['http://localhost:3001'],
     },
   });
@@ -185,5 +188,117 @@ describe('admin API with PostgreSQL', () => {
     await admin('get', '/api/projects/test/flags/checkout').expect(404);
     const list = await admin('get', '/api/projects/test/flags').expect(200);
     expect(list.body).toHaveLength(0);
+  });
+});
+
+describe('SDK endpoints', () => {
+  it('enforces key roles and environment-specific CORS', async () => {
+    await api()
+      .post('/sdk/v1/evaluate')
+      .send({ context: { key: 'opaque' } })
+      .expect(401)
+      .expect((r) => expect(r.body.code).toBe('SDK_KEY_INVALID'));
+    await api()
+      .get('/sdk/v1/flags')
+      .set('Authorization', `Bearer ${clientKey}`)
+      .expect(401);
+    await api()
+      .post('/sdk/v1/evaluate')
+      .set('Authorization', `Bearer ${serverKey}`)
+      .send({ context: { key: 'opaque' } })
+      .expect(401);
+    await api()
+      .post('/sdk/v1/evaluate')
+      .set('Authorization', `Bearer ${clientKey}`)
+      .set('Origin', 'https://evil.example')
+      .send({ context: { key: 'opaque' } })
+      .expect(403);
+    await api()
+      .options('/sdk/v1/evaluate')
+      .set('Origin', 'http://localhost:3001')
+      .expect(204)
+      .expect('Access-Control-Allow-Origin', 'http://localhost:3001');
+    await api()
+      .options('/sdk/v1/evaluate')
+      .set('Origin', 'https://evil.example')
+      .expect(403);
+  });
+  it('evaluates without retaining context, excludes archived flags, and isolates environments', async () => {
+    await admin('post', '/api/projects/test/flags')
+      .send({ key: 'sdk-flag', type: 'boolean', variations: [false, true] })
+      .expect(201);
+    const auditCount = await db.auditEntry.count();
+    const response = await api()
+      .post('/sdk/v1/evaluate')
+      .set('Authorization', `Bearer ${clientKey}`)
+      .set('Origin', 'http://localhost:3001')
+      .send({ context: { key: 'never-persist-this', plan: 'pro' } })
+      .expect(201)
+      .expect('Access-Control-Allow-Origin', 'http://localhost:3001')
+      .expect('Cache-Control', 'no-store');
+    expect(response.body.flags['sdk-flag']).toMatchObject({
+      value: false,
+      reason: 'OFF',
+    });
+    expect(response.body.flags.checkout).toBeUndefined();
+    expect(await db.auditEntry.count()).toBe(auditCount);
+    expect(JSON.stringify(await db.auditEntry.findMany())).not.toContain(
+      'never-persist-this',
+    );
+    await api()
+      .post('/sdk/v1/evaluate')
+      .set('Authorization', `Bearer ${clientKey}`)
+      .send({ context: { plan: 'pro' } })
+      .expect(400);
+    const other = newKey('client');
+    const p = await db.project.create({
+      data: { slug: 'other', name: 'Other' },
+    });
+    await db.environment.create({
+      data: {
+        key: 'production',
+        projectId: p.id,
+        clientSdkKeyHash: hashKey(other),
+        serverSdkKeyHash: hashKey(newKey('server')),
+        allowedOrigins: ['https://other.example'],
+      },
+    });
+    const isolated = await api()
+      .post('/sdk/v1/evaluate')
+      .set('Authorization', `Bearer ${other}`)
+      .send({ context: { key: 'x' } })
+      .expect(201);
+    expect(isolated.body.flags).toEqual({});
+    await api()
+      .post('/sdk/v1/evaluate')
+      .set('Authorization', `Bearer ${other}`)
+      .set('Origin', 'http://localhost:3001')
+      .send({ context: { key: 'x' } })
+      .expect(403);
+  });
+  it('returns server definitions and validates ETags after config changes', async () => {
+    const first = await api()
+      .get('/sdk/v1/flags')
+      .set('Authorization', `Bearer ${serverKey}`)
+      .expect(200);
+    expect(first.body.flags).toHaveLength(1);
+    expect(first.text).not.toContain('SdkKeyHash');
+    await api()
+      .get('/sdk/v1/flags')
+      .set('Authorization', `Bearer ${serverKey}`)
+      .set('If-None-Match', first.headers.etag)
+      .expect(304);
+    await admin(
+      'put',
+      '/api/projects/test/flags/sdk-flag/environments/development',
+    )
+      .send(config)
+      .expect(200);
+    const second = await api()
+      .get('/sdk/v1/flags')
+      .set('Authorization', `Bearer ${serverKey}`)
+      .set('If-None-Match', first.headers.etag)
+      .expect(200);
+    expect(second.headers.etag).not.toBe(first.headers.etag);
   });
 });

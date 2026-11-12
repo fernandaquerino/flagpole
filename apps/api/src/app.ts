@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { Module, Controller, Get } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import express from 'express';
+import { sdkAccess, SdkController, SdkService } from './sdk.js';
 import { AdminController, AuthController } from './admin.controller.js';
 import { AdminGuard } from './auth.js';
 import { FlagsService } from './flags.service.js';
@@ -13,8 +14,13 @@ class HealthController {
   }
 }
 @Module({
-  controllers: [HealthController, AdminController, AuthController],
-  providers: [FlagsService, AdminGuard],
+  controllers: [
+    HealthController,
+    AdminController,
+    AuthController,
+    SdkController,
+  ],
+  providers: [FlagsService, AdminGuard, SdkService],
 })
 class AppModule {}
 export async function createApp() {
@@ -31,14 +37,37 @@ export async function createApp() {
     logger: false,
     bodyParser: false,
   });
+  app.use('/sdk', sdkAccess);
   app.use(express.json({ limit: '64kb' }));
   app.useGlobalFilters(new ErrorFilter());
-  app.enableCors({
-    origin: process.env.ADMIN_ORIGIN,
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'X-Flagpole-CSRF'],
-    methods: ['GET', 'POST', 'PATCH', 'PUT', 'OPTIONS'],
-  });
+  app.use(
+    '/api',
+    (
+      req: express.Request,
+      res: express.Response,
+      next: express.NextFunction,
+    ) => {
+      res.vary('Origin');
+      res.setHeader('Cache-Control', 'no-store');
+      if (req.headers.origin === process.env.ADMIN_ORIGIN) {
+        res.setHeader('Access-Control-Allow-Origin', process.env.ADMIN_ORIGIN!);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        res.setHeader(
+          'Access-Control-Allow-Headers',
+          'Content-Type, X-Flagpole-CSRF',
+        );
+        res.setHeader(
+          'Access-Control-Allow-Methods',
+          'GET, POST, PATCH, PUT, OPTIONS',
+        );
+      }
+      if (req.method === 'OPTIONS') {
+        res.status(204).end();
+        return;
+      }
+      next();
+    },
+  );
   await app.init();
   return app;
 }
